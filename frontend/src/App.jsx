@@ -1,45 +1,59 @@
-import { useState } from 'react'
-import logo from './logo.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+import "./App.css";
+import io from 'socket.io-client'
+
+const socket = io('http://localhost:4000');
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [socketId, setSocketId] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(()=> {
+    socket.on('connect', () => {
+      console.log(`Connected to socketID ${socket.id}`)
+    })
+
+    socket.on('disconnect', (reason) =>{
+      console.log(`Server disconnected. Reason ${reason}`)
+    })
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+    };
+  },[])
+
+  function handleMessage() {
+    console.log("message sent");
+  }
+
+  function joinRoom() {
+    console.log("joined room");
+  }
 
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type="button" onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.jsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          {' | '}
-          <a
-            className="App-link"
-            href="https://vitejs.dev/guide/features.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Vite Docs
-          </a>
-        </p>
+        <div className="message">
+          <input
+            name="message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+
+          <button onClick={handleMessage}>Send message</button>
+        </div>
+        <div className="room">
+          <input
+            name="socketId"
+            value={socketId}
+            onChange={(e) => setSocketId(e.target.value)}
+          />
+          <button onClick={joinRoom}>Join room</button>
+        </div>
       </header>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
