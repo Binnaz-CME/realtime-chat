@@ -17,8 +17,18 @@
   margin: 1em;
 }
 
-button {
+.chatbox {
+  background-color: peachpuff;
+  width: 400px;
+  height: 400px;
+  color: black;
+  font-size: 1rem;
+
+}
+
+button, select {
   font-size: calc(10px + 2vmin);
+  margin: 0.2em
 }
 
 input {
