@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer } from "react";
 import "./App.css";
 import io from "socket.io-client";
-//import { nanoid } from "nanoid";
 
 const socket = io("http://localhost:4000");
-//const key = nanoid(4);
 
 function App() {
-  const [roomname, setRoomname] = useState("");
-  const [message, setMessage] = useState("");
+  const [roomname, setRoomname] = useState("default");
+  const [message, setMessage] = useState({ message: "" });
   const [createdRoom, setCreatedRoom] = useState("");
   const [messageHistory, setMessageHistory] = useState([]);
   const [rooms, setRooms] = useState([]);
-  // const [selectedRoom, setSelectedRoom] = useState(0)
+  const [username, setUsername] = useState("");
+  const [ready, setReady] = useState(false);
+  const [ifJoinedRoom, setJoinedRomm] = useState(false);
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -23,16 +23,19 @@ function App() {
       console.log(` ${socket.id} has joined the room: ${room}.`);
     });
 
-    socket.on("room_messages", (messageHistory) => {
-      setMessageHistory(messageHistory);
+    socket.on("room_messages", (messages) => {
+      setMessageHistory(messages);
     });
 
     socket.on("leave_room", (room) => {
       console.log(`${room} has left the room.`);
     });
 
-    socket.on("message", (data) => {
-      console.log(data);
+    socket.on("message", (newMessage) => {
+      setMessageHistory((prevmessageHistory) => [
+        ...prevmessageHistory,
+        ...newMessage,
+      ]);
     });
 
     socket.on("disconnect", (reason) => {
@@ -58,14 +61,25 @@ function App() {
 
   function joinRoom(roomname) {
     socket.emit("join_room", roomname);
+    setJoinedRomm(true)
   }
 
   function leaveRoom(roomname) {
     socket.emit("leave_room", roomname);
+    joinRoom("default");
+    setJoinedRomm(false)
   }
 
   function createRoom(createdRoom) {
     socket.emit("create_room", createdRoom);
+  }
+
+  function handleUsername(username) {
+    console.log(username);
+    if (username) {
+      setReady(true);
+    }
+    joinRoom("default");
   }
 
   // if (!messageHistory) return <p>Loading...</p>;
@@ -73,54 +87,72 @@ function App() {
 
   return (
     // lägg till en ul- med meddelanden som visas och vilket rum man befinner sig i inkl. användare hämtat från databas.
-    <div className="App">
-      <header className="App-header">
-        <div className="chatbox">
-          {messageHistory.map(({ user, created_at, message }) => (
-            <p>
-              {user}, {created_at}: {message}.
-            </p>
-          ))}
-        </div>
-        <div className="message">
+    <div className="App App-header">
+      {!ready ? (
+        <div className="username">
+          <h2>Create a username to join chat</h2>
           <input
-            name="message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            name="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
-          <button onClick={() => handleMessage(message)}>Send message</button>
+          <button onClick={() => handleUsername(username)}>Join chat</button>
         </div>
+      ) : (
+        <div className="App">
+          <header className="App-header">
+            <div className="chatbox">
+              {messageHistory.map(({ id, user, created_at, message }) => (
+                <p key={id}>
+                  <small>{created_at}:</small> <em>{user}:</em> {message}
+                </p>
+              ))}
+            </div>
+            <div className="message">
+              <input
+                name="message"
+                value={message.message}
+                onChange={(e) =>
+                  setMessage({
+                    user: username,
+                    room: roomname,
+                    message: e.target.value,
+                  })
+                }
+              />
+              <button onClick={() => handleMessage(message)}>
+                Send message
+              </button>
+            </div>
 
-        {/* lägg till rullist med rumnamn som hämtas från databas istället för inputfält! */}
-        <div className="room">
-          {/* <input
-            name="roomname"
-            value={roomname}
-            onChange={(e) => setRoomname(e.target.value)}
-          /> */}
+            <div className="room">
+              <p>Choose a room to join or create one:</p>
+              <select onChange={(e) => setRoomname(e.target.value)}>
+                {rooms.map(({ id, room }) => (
+                  <option key={id} name="room" value={room}>
+                    {room}
+                  </option>
+                ))}
+              </select>
+              <p>{ ifJoinedRoom ? `You joined room ${roomname}!` : `You left room ${roomname}!`}</p>
 
-          <select onChange={(e) => setRoomname(e.target.value)}>
-            {rooms.map(({ id, room }) => (
-              <option name="room" value={room}>
-                {room}
-              </option>
-            ))}
-          </select>
+              <button onClick={() => joinRoom(roomname)}>Join room</button>
+              <button onClick={() => leaveRoom(roomname)}>Leave room</button>
+            </div>
 
-          <button onClick={() => joinRoom(roomname)}>Join room</button>
-          <button onClick={() => leaveRoom(roomname)}>Leave room</button>
+            <div className="create_room">
+              <input
+                name="createdRoom"
+                value={createdRoom}
+                onChange={(e) => setCreatedRoom(e.target.value)}
+              />
+              <button onClick={() => createRoom(createdRoom)}>
+                Create Room
+              </button>
+            </div>
+          </header>
         </div>
-        {/*  Se ovan */}
-
-        <div className="create_room">
-          <input
-            name="createdRoom"
-            value={createdRoom}
-            onChange={(e) => setCreatedRoom(e.target.value)}
-          />
-          <button onClick={() => createRoom(createdRoom)}>Create Room</button>
-        </div>
-      </header>
+      )}
     </div>
   );
 }

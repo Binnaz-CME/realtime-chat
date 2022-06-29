@@ -5,7 +5,7 @@
 exports.up = async function (knex) {
   await knex.schema.createTable("messages", (table) => {
     table.increments("id");
-    table.string("user").unique().notNullable();
+    table.string("user").notNullable();
     table.string("room").notNullable();
     table.string("message").notNullable();
     table.timestamps(true, true);
@@ -13,7 +13,7 @@ exports.up = async function (knex) {
 
   await knex.schema.createTable("rooms", (table) => {
     table.increments("id");
-    table.string("room").notNullable();
+    table.string("room").unique().notNullable();
   });
 };
 
