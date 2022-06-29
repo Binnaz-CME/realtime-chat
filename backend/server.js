@@ -24,6 +24,11 @@ async function getRooms() {
   return result;
 }
 
+async function getRoom(id) {
+  const foundRoom = await knex("rooms").select().where({ id: id });
+  return foundRoom;
+}
+
 async function addRoom(room) {
   const id = await knex("rooms").insert(room);
   return id;
@@ -32,7 +37,7 @@ async function addRoom(room) {
 async function addMessage({ user, room, message }) {
   console.log("message from addmessage:", message);
 
-  if(!message) {
+  if (!message) {
     return null;
   } else {
     const id = await knex("messages").insert({ user, room, message });
@@ -64,13 +69,14 @@ io.on("connection", async (socket) => {
   const createdRooms = await getRooms();
   socket.emit("rooms", createdRooms);
 
-  socket.on("create_room", (room) => {
+  socket.on("create_room", async (room) => {
     rooms[room] = {
       name: room,
     };
     console.log(`Created room ${room}`);
-    addRoom({ room });
-    socket.emit("create_room", createdRooms);
+    const roomId = await addRoom({ room });
+    const newRoom = await getRoom(roomId);
+    const createdRoom = socket.emit("create_room", newRoom);
   });
 
   socket.on("join_room", async (room) => {

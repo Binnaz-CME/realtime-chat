@@ -42,8 +42,12 @@ function App() {
       console.log(`Server disconnected. Reason ${reason}.`);
     });
 
-    socket.on("create_room", (data) => {
-      console.log(`User ${socket.id} created room: ${data}.`);
+    socket.on("create_room", (createdRoom) => {
+      console.log('createdroom:',createdRoom)
+      setRooms((prevrooms) => [
+        ...prevrooms,
+        ...createdRoom,
+      ]);
     });
 
     socket.on("rooms", (availableRooms) => {
