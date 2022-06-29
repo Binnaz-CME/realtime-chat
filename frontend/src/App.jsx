@@ -38,20 +38,21 @@ function App() {
       ]);
     });
 
-    socket.on("disconnect", (reason) => {
-      console.log(`Server disconnected. Reason ${reason}.`);
-    });
-
     socket.on("create_room", (createdRoom) => {
-      console.log('createdroom:',createdRoom)
-      setRooms((prevrooms) => [
-        ...prevrooms,
-        ...createdRoom,
-      ]);
+      console.log("createdroom:", createdRoom);
+      setRooms((prevrooms) => [...prevrooms, ...createdRoom]);
     });
 
     socket.on("rooms", (availableRooms) => {
       setRooms(availableRooms);
+    });
+
+    socket.on("delete_room", (newRooms) => {
+      setRooms(newRooms);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log(`Server disconnected. Reason ${reason}.`);
     });
 
     return () => {
@@ -65,13 +66,13 @@ function App() {
 
   function joinRoom(roomname) {
     socket.emit("join_room", roomname);
-    setJoinedRomm(true)
+    setJoinedRomm(true);
   }
 
   function leaveRoom(roomname) {
     socket.emit("leave_room", roomname);
     joinRoom("default");
-    setJoinedRomm(false)
+    setJoinedRomm(false);
   }
 
   function createRoom(createdRoom) {
@@ -86,11 +87,12 @@ function App() {
     joinRoom("default");
   }
 
-  // if (!messageHistory) return <p>Loading...</p>;
-  // console.log(messageHistory);
+  function deleteRoom(roomname) {
+    socket.emit("delete_room", roomname);
+    console.log(`Room deleted: ${roomname}`);
+  }
 
   return (
-    // lägg till en ul- med meddelanden som visas och vilket rum man befinner sig i inkl. användare hämtat från databas.
     <div className="App App-header">
       {!ready ? (
         <div className="username">
@@ -128,7 +130,6 @@ function App() {
                 Send message
               </button>
             </div>
-
             <div className="room">
               <p>Choose a room to join or create one:</p>
               <select onChange={(e) => setRoomname(e.target.value)}>
@@ -138,12 +139,15 @@ function App() {
                   </option>
                 ))}
               </select>
-              <p>{ ifJoinedRoom ? `You joined room ${roomname}!` : `You left room ${roomname}!`}</p>
-
+              <p>
+                {ifJoinedRoom
+                  ? `You joined room ${roomname}!`
+                  : `You left room ${roomname}!`}
+              </p>
               <button onClick={() => joinRoom(roomname)}>Join room</button>
               <button onClick={() => leaveRoom(roomname)}>Leave room</button>
+              <button onClick={() => deleteRoom(roomname)}>Delete room</button>
             </div>
-
             <div className="create_room">
               <input
                 name="createdRoom"

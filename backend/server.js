@@ -8,12 +8,6 @@ const knex = require("./data/db.js");
 const app = express();
 const httpServer = createServer(app);
 
-//spara meddelande i en array som läses in från databasen vem/meddelande/tis/rum.
-async function getTable() {
-  const result = await knex("messages").select();
-  return result;
-}
-//alla meddelanden som finns i rummet ska synas vi inloggning
 async function getMessages(room) {
   const result = await knex("messages").select().where({ room: room });
   return result;
@@ -35,13 +29,11 @@ async function addRoom(room) {
 }
 
 async function addMessage({ user, room, message }) {
-  console.log("message from addmessage:", message);
-
-  if (!message) {
-    return null;
-  } else {
+  if (message) {
     const id = await knex("messages").insert({ user, room, message });
     return id;
+  } else {
+    return null;
   }
 }
 
@@ -50,11 +42,9 @@ async function getMessage(id) {
   return newMessage;
 }
 
-const rooms = {
-  default: {
-    name: "default room",
-  },
-};
+async function deleteRoom(room) {
+  await knex("rooms").where({ room: room }).del();
+}
 
 const io = new Server(httpServer, {
   cors: {
@@ -70,16 +60,18 @@ io.on("connection", async (socket) => {
   socket.emit("rooms", createdRooms);
 
   socket.on("create_room", async (room) => {
-    rooms[room] = {
-      name: room,
-    };
-    console.log(`Created room ${room}`);
-    const roomId = await addRoom({ room });
-    const newRoom = await getRoom(roomId);
-    const createdRoom = socket.emit("create_room", newRoom);
+    const foundRoom = createdRooms.find((r) => r.room === room);
+
+    if (!foundRoom) {
+      const roomId = await addRoom({ room });
+      const newRoom = await getRoom(roomId);
+      socket.emit("create_room", newRoom);
+    }
   });
 
   socket.on("join_room", async (room) => {
+    console.log(`${socket.id} has joined ${room}.`);
+
     //avgöra vilka rum som klient är med i och gå ur det senaste.
     const joinedRooms = Array.from(socket.rooms);
     const roomToLeave = joinedRooms[1];
@@ -88,8 +80,6 @@ io.on("connection", async (socket) => {
     //gå med i nytt rum
     socket.join(room);
     socket.currentRoom = room;
-
-    console.log(`${socket.id} has joined ${room}.`);
 
     socket.emit("join_room", room);
     const messageHistory = await getMessages(socket.currentRoom);
@@ -104,10 +94,15 @@ io.on("connection", async (socket) => {
   socket.on("message", async (message) => {
     const id = await addMessage(message);
     const newMessage = await getMessage(id);
-    // const [{ message: ifMessage }] = newMessage;
 
-    console.log(`${socket.id} har skickat ${message.message}.`);
     io.to(socket.currentRoom).emit("message", newMessage);
+  });
+
+  socket.on("delete_room", async (room) => {
+    await deleteRoom(room);
+    const newRooms = await getRooms();
+
+    socket.emit("delete_room", newRooms);
   });
 
   socket.on("disconnect", (reason) => {
