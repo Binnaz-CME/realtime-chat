@@ -1,9 +1,8 @@
-const { Socket } = require("dgram");
 const express = require("express");
 const { createServer } = require("http");
-const { join } = require("path");
 const { Server } = require("socket.io");
 const knex = require("./data/db.js");
+const fs = require("fs");
 
 const app = express();
 const httpServer = createServer(app);
@@ -46,6 +45,15 @@ async function deleteRoom(room) {
   await knex("rooms").where({ room: room }).del();
 }
 
+// async function deleteRoomsAndMessages(room) {
+//   const result = await knex("")
+//     .join('', "", "r")
+//     .select("", "")
+//     .where({ });
+// }
+
+// console.log(deleteRoomsAndMessages('skunk'));
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*",
@@ -58,6 +66,28 @@ io.on("connection", async (socket) => {
   socket.currentRoom = "default";
   const createdRooms = await getRooms();
   socket.emit("rooms", createdRooms);
+
+  // socket.use(([event, ...args], next) => {
+  //   // if (event === "message") {
+  //   const messageLog = JSON.stringify(...args);
+
+  //   console.log("event:", event, "logg:", messageLog);
+
+  //   let stream = fs.createWriteStream("./data/message_log.txt", {
+  //     flags: "a",
+  //   });
+
+  //   stream.write(messageLog + ",\n", (err) => {
+  //     if (err) {
+  //       throw new err();
+  //     } else {
+  //       console.log("file written");
+  //     }
+  //   });
+  //   // }
+
+  //   next();
+  // });
 
   socket.on("create_room", async (room) => {
     const foundRoom = createdRooms.find((r) => r.room === room);
@@ -72,23 +102,20 @@ io.on("connection", async (socket) => {
   socket.on("join_room", async (room) => {
     console.log(`${socket.id} has joined ${room}.`);
 
-    //avgöra vilka rum som klient är med i och gå ur det senaste.
     const joinedRooms = Array.from(socket.rooms);
     const roomToLeave = joinedRooms[1];
     socket.leave(roomToLeave);
 
-    //gå med i nytt rum
     socket.join(room);
     socket.currentRoom = room;
-
     socket.emit("join_room", room);
+
     const messageHistory = await getMessages(socket.currentRoom);
     socket.emit("room_messages", messageHistory);
   });
 
   socket.on("leave_room", (room) => {
     socket.leave(room);
-    console.log(`${socket.id} has left room ${room}.`);
   });
 
   socket.on("message", async (message) => {
