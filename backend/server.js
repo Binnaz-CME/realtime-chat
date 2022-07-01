@@ -42,8 +42,8 @@ async function getMessage(id) {
 }
 
 async function deleteRoom(room) {
-  const res = await knex("rooms").where({ room: room }).del();
-  const res2 = await knex
+  await knex("rooms").where({ room: room }).del();
+  await knex
     .select("message", "room")
     .from("messages")
     .where({ room: room })
@@ -64,10 +64,15 @@ io.on("connection", async (socket) => {
   socket.emit("rooms", createdRooms);
 
   socket.use(([event, ...args], next) => {
-    if (event === "message") {
-      const messageLog = JSON.stringify(...args);
 
-      console.log("event:", event, "logg:", messageLog);
+    if (event === "message") {
+      
+      const messageLog = JSON.stringify({
+        timestamp: Date(),
+        user: socket.username,
+        room: socket.currentRoom,
+        message : args[0].message
+      });
 
       let stream = fs.createWriteStream("./data/message_log.txt", {
         flags: "a",
@@ -77,12 +82,16 @@ io.on("connection", async (socket) => {
         if (err) {
           throw new err();
         } else {
-          console.log("file written");
+          console.log("Wrote to file successfully");
         }
       });
     }
 
     next();
+  });
+
+  socket.on("username", (username) => {
+    socket.username = username;
   });
 
   socket.on("create_room", async (room) => {
@@ -104,10 +113,6 @@ io.on("connection", async (socket) => {
 
     socket.join(room);
     socket.currentRoom = room;
-
-    console.log("socket.currentroom 112:", socket.currentRoom);
-    console.log("room from join_room 113:", room);
-
     socket.emit("join_room", room);
 
     const messageHistory = await getMessages(socket.currentRoom);
@@ -119,14 +124,21 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("message", async (message) => {
-    console.log("message");
-    const id = await addMessage(message);
+
+    const createMessage = {
+      user: socket.username,
+      room: socket.currentRoom,
+      message: message.message,
+    };
+
+    const id = await addMessage(createMessage);
     const newMessage = await getMessage(id);
 
     io.to(socket.currentRoom).emit("message", newMessage);
   });
 
   socket.on("delete_room", async (room) => {
+
     await deleteRoom(room);
     const newRooms = await getRooms();
 

@@ -14,6 +14,8 @@ function App() {
   const [ready, setReady] = useState(false);
   const [joinRoomMessage, setJoinRoomMessage] = useState("");
   const [joined, setJoined] = useState(false);
+  const [newRoom, setNewRoom] = useState(false);
+
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -25,9 +27,9 @@ function App() {
     });
 
     socket.on("join_room", (room) => {
-      console.log("from join_room(socket.on) function:", room);
       setJoinRoomMessage(`You joined room ${room}`);
       setJoined(true);
+      setNewRoom(false)
     });
 
     socket.on("room_messages", (messages) => {
@@ -35,7 +37,6 @@ function App() {
     });
 
     socket.on("message", (newMessage) => {
-      console.log("from message(socket.on) function", newMessage);
       setMessageHistory((prevmessageHistory) => [
         ...prevmessageHistory,
         ...newMessage,
@@ -47,7 +48,6 @@ function App() {
     });
 
     socket.on("leave_room", (room) => {
-      console.log(`You left room ${room}`);
       setJoined(false);
     });
 
@@ -65,26 +65,25 @@ function App() {
   }, []);
 
   function handleMessage(message) {
-    console.log("from handleMessage function", message);
     socket.emit("message", message);
   }
 
   function joinRoom(roomname) {
-    console.log("from joinRoom function:", roomname);
     socket.emit("join_room", roomname);
   }
 
   function leaveRoom(roomname) {
-    console.log("from leaveRoom function:", roomname);
     socket.emit("leave_room", roomname);
     joinRoom("default");
   }
 
   function createRoom(createdRoom) {
     socket.emit("create_room", createdRoom);
+    setNewRoom(true)
   }
 
   function handleUsername(username) {
+    socket.emit("username", username);
     if (username) {
       setReady(true);
     }
@@ -125,11 +124,7 @@ function App() {
                 name="message"
                 value={message.message}
                 onChange={(e) =>
-                  // låt servern hantera allt förrutom message.
                   setMessage({
-                    timestamp: Date(),
-                    user: username,
-                    room: roomname,
                     message: e.target.value,
                   })
                 }
@@ -163,6 +158,7 @@ function App() {
               <button onClick={() => createRoom(createdRoom)}>
                 Create Room
               </button>
+              <p>{newRoom ? `Room: "${createdRoom}" created!` : null}</p>
             </div>
           </header>
         </div>
