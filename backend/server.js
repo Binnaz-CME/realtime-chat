@@ -119,7 +119,7 @@ io.on("connection", async (socket) => {
     socket.emit("room_messages", messageHistory);
   });
 
-  socket.on("leave_room", (room) => {
+  socket.on("leave_room", async (room) => {
     socket.leave(room);
   });
 

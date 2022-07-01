@@ -16,7 +16,6 @@ function App() {
   const [joined, setJoined] = useState(false);
   const [newRoom, setNewRoom] = useState(false);
 
-
   useEffect(() => {
     socket.on("connect", () => {
       console.log(`Connected to socketID ${socket.id}.`);
@@ -29,7 +28,7 @@ function App() {
     socket.on("join_room", (room) => {
       setJoinRoomMessage(`You joined room ${room}`);
       setJoined(true);
-      setNewRoom(false)
+      setNewRoom(false);
     });
 
     socket.on("room_messages", (messages) => {
@@ -60,7 +59,15 @@ function App() {
     });
 
     return () => {
-      socket.off();
+      socket.off("connect");
+      socket.off("create_room");
+      socket.off("join_room");
+      socket.off("room_messages");
+      socket.off("message");
+      socket.off("rooms");
+      socket.off("leave_room");
+      socket.off("delete_room");
+      socket.off("disconnect");
     };
   }, []);
 
@@ -74,13 +81,13 @@ function App() {
 
   function leaveRoom(roomname) {
     socket.emit("leave_room", roomname);
-    setRoomname('default')
+    setRoomname("default");
     joinRoom("default");
   }
 
   function createRoom(createdRoom) {
     socket.emit("create_room", createdRoom);
-    setNewRoom(true)
+    setNewRoom(true);
   }
 
   function handleUsername(username) {
@@ -93,6 +100,15 @@ function App() {
 
   function deleteRoom(roomname) {
     socket.emit("delete_room", roomname);
+  }
+
+  function timestamp(created_at) {
+    const date = created_at.slice(0, 10) + "T" + created_at.slice(10);
+    const formattedDate = date.replace(/\s/g, "");
+    const offsetInMinutes = new Date(formattedDate).getTimezoneOffset();
+    const offsetInHours = offsetInMinutes / -60;
+    console.log(offsetInHours);
+    return offsetInHours;
   }
 
   return (
@@ -113,7 +129,7 @@ function App() {
             <div className="chatbox">
               {messageHistory.map(({ id, user, created_at, message }) => (
                 <p key={id}>
-                  <small>{created_at}:</small> <em>{user}:</em> {message}
+                  <small>{`${created_at} GMT`}:</small> <em>{user}:</em> {message}
                 </p>
               ))}
             </div>
@@ -138,7 +154,10 @@ function App() {
               <p>
                 Hi, {username}! Choose a room to join or create one to chat:
               </p>
-              <select value={roomname} onChange={(e) => setRoomname(e.target.value)}>
+              <select
+                value={roomname}
+                onChange={(e) => setRoomname(e.target.value)}
+              >
                 {rooms.map(({ id, room }) => (
                   <option key={id} name="room" value={room}>
                     {room}
@@ -159,7 +178,11 @@ function App() {
               <button onClick={() => createRoom(createdRoom)}>
                 Create Room
               </button>
-              <p>{newRoom ? `Room "${createdRoom}" created, switch room to join!` : null}</p>
+              <p>
+                {newRoom
+                  ? `Room "${createdRoom}" created, switch room to join!`
+                  : null}
+              </p>
             </div>
           </header>
         </div>
