@@ -42,17 +42,13 @@ async function getMessage(id) {
 }
 
 async function deleteRoom(room) {
-  await knex("rooms").where({ room: room }).del();
+  const res = await knex("rooms").where({ room: room }).del();
+  const res2 = await knex
+    .select("message", "room")
+    .from("messages")
+    .where({ room: room })
+    .del();
 }
-
-// async function deleteRoomsAndMessages(room) {
-//   const result = await knex("")
-//     .join('', "", "r")
-//     .select("", "")
-//     .where({ });
-// }
-
-// console.log(deleteRoomsAndMessages('skunk'));
 
 const io = new Server(httpServer, {
   cors: {
@@ -67,27 +63,27 @@ io.on("connection", async (socket) => {
   const createdRooms = await getRooms();
   socket.emit("rooms", createdRooms);
 
-  // socket.use(([event, ...args], next) => {
-  //   // if (event === "message") {
-  //   const messageLog = JSON.stringify(...args);
+  socket.use(([event, ...args], next) => {
+    if (event === "message") {
+      const messageLog = JSON.stringify(...args);
 
-  //   console.log("event:", event, "logg:", messageLog);
+      console.log("event:", event, "logg:", messageLog);
 
-  //   let stream = fs.createWriteStream("./data/message_log.txt", {
-  //     flags: "a",
-  //   });
+      let stream = fs.createWriteStream("./data/message_log.txt", {
+        flags: "a",
+      });
 
-  //   stream.write(messageLog + ",\n", (err) => {
-  //     if (err) {
-  //       throw new err();
-  //     } else {
-  //       console.log("file written");
-  //     }
-  //   });
-  //   // }
+      stream.write(messageLog + ",\n", (err) => {
+        if (err) {
+          throw new err();
+        } else {
+          console.log("file written");
+        }
+      });
+    }
 
-  //   next();
-  // });
+    next();
+  });
 
   socket.on("create_room", async (room) => {
     const foundRoom = createdRooms.find((r) => r.room === room);
@@ -108,6 +104,10 @@ io.on("connection", async (socket) => {
 
     socket.join(room);
     socket.currentRoom = room;
+
+    console.log("socket.currentroom 112:", socket.currentRoom);
+    console.log("room from join_room 113:", room);
+
     socket.emit("join_room", room);
 
     const messageHistory = await getMessages(socket.currentRoom);
@@ -119,6 +119,7 @@ io.on("connection", async (socket) => {
   });
 
   socket.on("message", async (message) => {
+    console.log("message");
     const id = await addMessage(message);
     const newMessage = await getMessage(id);
 

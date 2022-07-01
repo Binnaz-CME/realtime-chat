@@ -20,7 +20,12 @@ function App() {
       console.log(`Connected to socketID ${socket.id}.`);
     });
 
+    socket.on("create_room", (createdRoom) => {
+      setRooms((prevrooms) => [...prevrooms, ...createdRoom]);
+    });
+
     socket.on("join_room", (room) => {
+      console.log("from join_room(socket.on) function:", room);
       setJoinRoomMessage(`You joined room ${room}`);
       setJoined(true);
     });
@@ -30,14 +35,11 @@ function App() {
     });
 
     socket.on("message", (newMessage) => {
+      console.log("from message(socket.on) function", newMessage);
       setMessageHistory((prevmessageHistory) => [
         ...prevmessageHistory,
         ...newMessage,
       ]);
-    });
-
-    socket.on("create_room", (createdRoom) => {
-      setRooms((prevrooms) => [...prevrooms, ...createdRoom]);
     });
 
     socket.on("rooms", (availableRooms) => {
@@ -63,16 +65,17 @@ function App() {
   }, []);
 
   function handleMessage(message) {
-    console.log(message);
+    console.log("from handleMessage function", message);
     socket.emit("message", message);
   }
 
   function joinRoom(roomname) {
-    console.log(roomname);
+    console.log("from joinRoom function:", roomname);
     socket.emit("join_room", roomname);
   }
 
   function leaveRoom(roomname) {
+    console.log("from leaveRoom function:", roomname);
     socket.emit("leave_room", roomname);
     joinRoom("default");
   }
@@ -115,11 +118,14 @@ function App() {
               ))}
             </div>
             <div className="message">
-              <textarea>
-                rows="5" cols="50" className="chatInput" name="message" value=
-                {message.message}
-                onChange=
-                {(e) =>
+              <textarea
+                rows="5"
+                cols="50"
+                className="chatInput"
+                name="message"
+                value={message.message}
+                onChange={(e) =>
+                  // låt servern hantera allt förrutom message.
                   setMessage({
                     timestamp: Date(),
                     user: username,
@@ -127,7 +133,7 @@ function App() {
                     message: e.target.value,
                   })
                 }
-              </textarea>
+              ></textarea>
               <button onClick={() => handleMessage(message)}>
                 Send message
               </button>

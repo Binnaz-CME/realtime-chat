@@ -9,6 +9,5 @@ exports.seed = async function (knex) {
     { room: "default" },
     { room: "skunk" },
     { room: "elefant" },
-    { room: "apa" },
   ]);
 };

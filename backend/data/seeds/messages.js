@@ -16,5 +16,7 @@ exports.seed = async function (knex) {
     { user: "kian", room: "elefant",message: "hej" },
     { user: "evan", room: "elefant",message: "kul" },
     { user: "kian", room: "elefant",message: "vad händer?" },
+    { user: "evan", room: "skunk",message: "kul" },
+    { user: "kian", room: "skunk",message: "vad händer?" },
   ]);
 };
