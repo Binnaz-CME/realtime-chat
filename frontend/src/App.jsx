@@ -102,15 +102,6 @@ function App() {
     socket.emit("delete_room", roomname);
   }
 
-  function timestamp(created_at) {
-    const date = created_at.slice(0, 10) + "T" + created_at.slice(10);
-    const formattedDate = date.replace(/\s/g, "");
-    const offsetInMinutes = new Date(formattedDate).getTimezoneOffset();
-    const offsetInHours = offsetInMinutes / -60;
-    console.log(offsetInHours);
-    return offsetInHours;
-  }
-
   return (
     <div className="App App-header">
       {!ready ? (
