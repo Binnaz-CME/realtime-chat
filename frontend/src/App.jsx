@@ -74,6 +74,7 @@ function App() {
 
   function leaveRoom(roomname) {
     socket.emit("leave_room", roomname);
+    setRoomname('default')
     joinRoom("default");
   }
 
@@ -137,7 +138,7 @@ function App() {
               <p>
                 Hi, {username}! Choose a room to join or create one to chat:
               </p>
-              <select onChange={(e) => setRoomname(e.target.value)}>
+              <select value={roomname} onChange={(e) => setRoomname(e.target.value)}>
                 {rooms.map(({ id, room }) => (
                   <option key={id} name="room" value={room}>
                     {room}
@@ -158,7 +159,7 @@ function App() {
               <button onClick={() => createRoom(createdRoom)}>
                 Create Room
               </button>
-              <p>{newRoom ? `Room: "${createdRoom}" created!` : null}</p>
+              <p>{newRoom ? `Room "${createdRoom}" created, switch room to join!` : null}</p>
             </div>
           </header>
         </div>
